@@ -55,16 +55,29 @@ function collectOverrides() {
 async function scan() {
   busy.value = true;
   error.value = "";
+  let shouldCalibrate = false;
   try {
     const result = await previewPlan(collectOverrides());
     items.value = result.items;
     overrides.value = {};
-    message.value = `扫描完成：${result.count} 个文件，其中 ${result.items.filter((item) => item.status === "ready").length} 个可整理。`;
+    const ready = result.items.filter((item) => item.status === "ready").length;
+    const targetCount = countCalibrationTargets(groupPlanItems(result.items));
+    const shouldAutoCalibrate = Boolean(props.config.tmdb_key_configured);
+    shouldCalibrate = shouldAutoCalibrate && targetCount > 0;
+    const summary = `扫描完成：${result.count} 个文件，其中 ${ready} 个可整理。`;
+    if (shouldCalibrate) {
+      message.value = `${summary} 即将自动校准 ${targetCount} 个片名…`;
+    } else if (targetCount && !shouldAutoCalibrate) {
+      message.value = `${summary} 尚未配置 TMDB API Key，已跳过自动校准；配置后可手动重新校准。`;
+    } else {
+      message.value = summary;
+    }
   } catch (cause) {
     error.value = cause.message;
   } finally {
     busy.value = false;
   }
+  if (shouldCalibrate) await autoCalibrate();
 }
 async function autoCalibrate() {
   if (busy.value || !calibrationTargetCount.value) return;
@@ -148,7 +161,7 @@ function saveOverride(payload) {
     <div>
       <p class="eyebrow">媒体库工作台</p>
       <h2>让电影和剧集各归其位</h2>
-      <p class="muted">先扫描预览，再确认 TMDB 信息与分类，最后执行整理。</p>
+      <p class="muted">扫描后自动校准 TMDB 信息；核对预览与分类后，再执行整理。</p>
     </div>
     <div class="intro-icon" aria-hidden="true">▤</div>
   </section>
@@ -173,7 +186,7 @@ function saveOverride(payload) {
       @stop="requestStopCalibration"
     />
     <p v-if="items.length" class="hint-inline">
-      自动校准按 0.8 QPS 逐个搜索，只自动采用高置信匹配；结果会更新预览，不会移动文件。
+      扫描完成后会按 0.8 QPS 自动校准 TMDB，只采用高置信匹配。也可重新校准；校准仅更新预览，不会移动文件。
     </p>
     <p v-if="error" class="message error" role="alert">{{ error }}</p>
     <div v-if="items.length" class="plan-wrap">

@@ -21,7 +21,7 @@ defineEmits(["scan", "calibrate", "stop"]);
       :disabled="busy || !targetCount"
       @click="$emit('calibrate')"
     >
-      自动校准（{{ targetCount }} 个片名）
+      重新校准（{{ targetCount }} 个片名）
     </button>
     <button
       v-if="isCalibrating"
