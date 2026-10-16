@@ -11,7 +11,15 @@ from urllib.parse import parse_qs, urlparse
 
 from api_helpers import list_authorized_directories, requested_overrides, tmdb_search_for_file
 from activity_log import recent_activity, record_activity
-from organizer import apply_plan, build_plan, list_authorized_roots, validate_folder
+from organizer import (
+    MAX_OPERATION_DETAILS,
+    apply_plan,
+    build_plan,
+    list_authorized_roots,
+    normalize_source_dirs,
+    validate_folder,
+    validate_source_folders,
+)
 from offline_catalog import catalog_info, import_catalog
 from sync_station import sync_station_status, validate_sync_station_url
 from tmdb import validate_tmdb_proxy_url
@@ -20,7 +28,16 @@ APP_ROOT = Path(os.environ.get("TRIM_APPDEST", Path(__file__).resolve().parents[
 WEB_ROOT = APP_ROOT / "ui" / "www"
 DATA_ROOT = Path(os.environ.get("TRIM_PKGVAR", Path.home() / ".media-file-renaming"))
 CONFIG_PATH = DATA_ROOT / "config.json"
-DEFAULT_CONFIG = {"source_dir": "", "destination_dir": "", "watch_enabled": False, "interval_minutes": 15, "tmdb_api_key": "", "tmdb_proxy_url": "", "tmdb_sync_station_url": ""}
+DEFAULT_CONFIG = {
+    "source_dir": "",
+    "source_dirs": [],
+    "destination_dir": "",
+    "watch_enabled": False,
+    "interval_minutes": 15,
+    "tmdb_api_key": "",
+    "tmdb_proxy_url": "",
+    "tmdb_sync_station_url": "",
+}
 CONFIG_LOCK = threading.Lock()
 
 
@@ -40,19 +57,40 @@ def write_config(config: dict) -> None:
     temp_path.replace(CONFIG_PATH)
 
 
-def authorized_config(config: dict) -> tuple[Path, Path]:
+def configured_source_dirs(config: dict) -> list[str]:
+    return normalize_source_dirs(
+        config.get("source_dirs"),
+        str(config.get("source_dir", "")),
+    )
+
+
+def activity_context(config: dict) -> dict:
+    try:
+        source_dirs = configured_source_dirs(config)
+    except ValueError:
+        source_dirs = []
+    return {
+        "source_dirs": source_dirs,
+        "destination_dir": str(config.get("destination_dir", "")),
+    }
+
+
+def authorized_config(config: dict) -> tuple[list[Path], Path]:
     roots = list_authorized_roots()
-    source = validate_folder(str(config.get("source_dir", "")), roots)
+    sources = validate_source_folders(configured_source_dirs(config), roots)
     destination = validate_folder(str(config.get("destination_dir", "")), roots)
-    if source == destination or source in destination.parents:
-        raise ValueError("目标目录不能与源目录相同或位于源目录内部")
-    return source, destination
+    for source in sources:
+        if source == destination or source in destination.parents:
+            raise ValueError("目标目录不能与任一源目录相同或位于源目录内部")
+    return sources, destination
 
 
 def run_once(config: dict) -> dict:
-    source, destination = authorized_config(config)
-    plan = build_plan(source, destination)
-    return apply_plan(plan)
+    sources, destination = authorized_config(config)
+    plan = build_plan(sources, destination)
+    result = apply_plan(plan)
+    result["total"] = len(plan)
+    return result
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -88,6 +126,7 @@ class Handler(BaseHTTPRequestHandler):
             roots = [str(path) for path in list_authorized_roots()]
             config = read_config()
             public_config = {key: value for key, value in config.items() if key != "tmdb_api_key"}
+            public_config["source_dirs"] = configured_source_dirs(config)
             public_config["tmdb_key_configured"] = bool(config.get("tmdb_api_key"))
             public_config["offline_catalog"] = catalog_info()
             public_config["tmdb_sync_station"] = sync_station_status(str(config.get("tmdb_sync_station_url", "")))
@@ -130,34 +169,70 @@ class Handler(BaseHTTPRequestHandler):
             payload = self.read_json()
             config = read_config()
             if route == "/api/preview":
-                source, destination = authorized_config({**config, **payload})
-                overrides = requested_overrides(payload, source)
-                items = build_plan(source, destination, overrides)
+                sources, destination = authorized_config({**config, **payload})
+                overrides = requested_overrides(payload, sources)
+                items = build_plan(sources, destination, overrides)
                 ready = sum(item.status == "ready" for item in items)
-                record_activity("扫描", f"扫描 {len(items)} 个视频，{ready} 个可整理")
+                skipped = len(items) - ready
+                details = []
+                for item in items:
+                    if item.status == "ready":
+                        continue
+                    if len(details) >= MAX_OPERATION_DETAILS:
+                        break
+                    details.append({
+                        "status": item.status,
+                        "source": item.source,
+                        "destination": item.destination,
+                        "message": item.reason or "未进入待整理队列",
+                    })
+                record_activity(
+                    "扫描",
+                    f"扫描 {len(items)} 个视频，{ready} 个可整理，{skipped} 个需检查",
+                    total=len(items),
+                    ready=ready,
+                    skipped=skipped,
+                    source_dirs=[str(source) for source in sources],
+                    destination_dir=str(destination),
+                    details=details,
+                    details_total=skipped,
+                )
                 self.send_json({"items": [item.as_dict() for item in items], "count": len(items)})
                 return
             if route == "/api/tmdb/search":
-                source, _ = authorized_config(config)
-                results = tmdb_search_for_file(payload, config, source)
+                sources, _ = authorized_config(config)
+                results = tmdb_search_for_file(payload, config, sources)
                 self.send_json({"results": results})
                 return
             if route == "/api/run":
-                source, destination = authorized_config(config)
-                overrides = requested_overrides(payload, source)
-                items = build_plan(source, destination, overrides)
+                sources, destination = authorized_config(config)
+                overrides = requested_overrides(payload, sources)
+                items = build_plan(sources, destination, overrides)
                 result = apply_plan(items)
                 result["total"] = len(items)
-                record_activity("手动整理", f"整理完成：移动 {result['moved']} 个，跳过 {result['skipped']} 个，失败 {result['failed']} 个",
-                                moved=result["moved"], skipped=result["skipped"], failed=result["failed"])
+                record_activity(
+                    "手动整理",
+                    f"整理完成：移动 {result['moved']} 个，跳过 {result['skipped']} 个，失败 {result['failed']} 个",
+                    total=result["total"],
+                    ready=sum(item.status == "ready" for item in items),
+                    moved=result["moved"],
+                    skipped=result["skipped"],
+                    failed=result["failed"],
+                    source_dirs=[str(source) for source in sources],
+                    destination_dir=str(destination),
+                    details=result["details"],
+                    details_total=result["details_total"],
+                )
                 self.send_json(result)
                 return
             self.send_error(404)
         except (ValueError, OSError) as exc:
-            record_activity("错误", f"{route}: {exc}")
+            context = activity_context(config) if "config" in locals() else {}
+            record_activity("错误", f"{route}: {exc}", **context)
             self.send_json({"error": str(exc)}, 400)
         except Exception as exc:  # Return a useful error instead of silently failing the request.
-            record_activity("错误", f"{route}: {exc}")
+            context = activity_context(config) if "config" in locals() else {}
+            record_activity("错误", f"{route}: {exc}", **context)
             self.send_json({"error": f"整理失败：{exc}"}, 500)
 
     def do_PUT(self) -> None:
@@ -168,6 +243,17 @@ class Handler(BaseHTTPRequestHandler):
             payload = self.read_json()
             previous_config = read_config()
             config = {**DEFAULT_CONFIG, **previous_config, **payload}
+            if "source_dirs" in payload:
+                source_dirs = normalize_source_dirs(
+                    payload.get("source_dirs"),
+                    str(payload.get("source_dir", "")),
+                )
+            elif "source_dir" in payload:
+                source_dirs = normalize_source_dirs(None, str(payload.get("source_dir", "")))
+            else:
+                source_dirs = configured_source_dirs(config)
+            config["source_dirs"] = source_dirs
+            config["source_dir"] = source_dirs[0] if source_dirs else ""
             if not str(payload.get("tmdb_api_key", "")).strip():
                 config["tmdb_api_key"] = previous_config.get("tmdb_api_key", "")
             if len(str(config["tmdb_api_key"])) > 256:
@@ -179,6 +265,8 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError("自动整理间隔必须在 5 到 1440 分钟之间")
             if config["watch_enabled"]:
                 authorized_config(config)
+            elif source_dirs:
+                validate_source_folders(source_dirs, list_authorized_roots())
             config["interval_minutes"] = interval
             config["watch_enabled"] = bool(config["watch_enabled"])
             with CONFIG_LOCK:
@@ -187,6 +275,7 @@ class Handler(BaseHTTPRequestHandler):
             public_config["tmdb_key_configured"] = bool(config.get("tmdb_api_key"))
             self.send_json({"config": public_config})
         except (ValueError, OSError, TypeError) as exc:
+            record_activity("错误", f"/api/config: {exc}", **activity_context(read_config()))
             self.send_json({"error": str(exc)}, 400)
 
 
@@ -197,7 +286,7 @@ def watch_loop() -> None:
         config = read_config()
         signature = (
             config.get("watch_enabled"),
-            config.get("source_dir"),
+            tuple(configured_source_dirs(config)),
             config.get("destination_dir"),
             config.get("interval_minutes"),
         )
@@ -208,11 +297,22 @@ def watch_loop() -> None:
             try:
                 result = run_once(config)
                 print(f"Automatic organization: {result}", flush=True)
-                record_activity("自动整理", f"自动整理完成：移动 {result['moved']} 个，跳过 {result['skipped']} 个，失败 {result['failed']} 个",
-                                moved=result["moved"], skipped=result["skipped"], failed=result["failed"])
+                record_activity(
+                    "自动整理",
+                    f"自动整理完成：移动 {result['moved']} 个，跳过 {result['skipped']} 个，失败 {result['failed']} 个",
+                    total=result["total"],
+                    ready=result["ready"],
+                    moved=result["moved"],
+                    skipped=result["skipped"],
+                    failed=result["failed"],
+                    source_dirs=configured_source_dirs(config),
+                    destination_dir=str(config.get("destination_dir", "")),
+                    details=result["details"],
+                    details_total=result["details_total"],
+                )
             except Exception as exc:
                 print(f"Automatic organization failed: {exc}", flush=True)
-                record_activity("错误", f"自动整理失败：{exc}")
+                record_activity("错误", f"自动整理失败：{exc}", **activity_context(config))
             next_run = time.monotonic() + max(5, int(config.get("interval_minutes", 15))) * 60
         time.sleep(5)
 

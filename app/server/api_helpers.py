@@ -13,7 +13,8 @@ from tmdb import search_titles
 POSTER_PATH_PATTERN = re.compile(r"/[A-Za-z0-9_-]+\.(?:jpe?g|png|webp)", re.IGNORECASE)
 
 
-def requested_overrides(payload: dict, source: Path) -> dict[str, dict]:
+def requested_overrides(payload: dict, source: Path | list[Path]) -> dict[str, dict]:
+    source_roots = [source] if isinstance(source, Path) else source
     raw = payload.get("overrides", {})
     if not isinstance(raw, dict) or len(raw) > 5000:
         raise ValueError("识别修正数据格式无效")
@@ -21,7 +22,7 @@ def requested_overrides(payload: dict, source: Path) -> dict[str, dict]:
     result: dict[str, dict] = {}
     for raw_path, values in raw.items():
         candidate = Path(raw_path).resolve(strict=True)
-        if not is_within(candidate, [source]) or not candidate.is_file():
+        if not is_within(candidate, source_roots) or not candidate.is_file():
             raise ValueError("修正的文件不在待整理目录中")
         if not isinstance(values, dict) or set(values) - allowed:
             raise ValueError("识别修正字段无效")
@@ -55,9 +56,10 @@ def list_authorized_directories(requested_path: str) -> dict:
     return {"current": str(candidate), "parent": str(parent) if parent else None, "roots": [], "directories": directories}
 
 
-def tmdb_search_for_file(payload: dict, config: dict, source: Path) -> list[dict]:
+def tmdb_search_for_file(payload: dict, config: dict, source: Path | list[Path]) -> list[dict]:
+    source_roots = [source] if isinstance(source, Path) else source
     media_file = Path(str(payload.get("source", ""))).resolve(strict=True)
-    if not media_file.is_file() or not is_within(media_file, [source]):
+    if not media_file.is_file() or not is_within(media_file, source_roots):
         raise ValueError("只能校准待整理目录中的文件")
     kind = str(payload.get("kind", ""))
     query = str(payload.get("query", ""))

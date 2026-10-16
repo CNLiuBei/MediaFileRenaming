@@ -12,7 +12,7 @@ async function request(path, options = {}) {
   return data;
 }
 export const getStatus = () => request("/api/status");
-export const getLogs = () => request("/api/logs?limit=100");
+export const getLogs = () => request("/api/logs?limit=200");
 export const browseDirectories = (path = "") =>
   request(`/api/directories?path=${encodeURIComponent(path)}`);
 export const saveConfig = (config) =>

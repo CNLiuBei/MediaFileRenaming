@@ -12,6 +12,7 @@ const isOnline = ref(false);
 const loadError = ref("");
 const config = reactive({
   source_dir: "",
+  source_dirs: [],
   destination_dir: "",
   watch_enabled: false,
   interval_minutes: 15,

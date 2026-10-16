@@ -4,6 +4,7 @@ import { saveConfig } from "../api";
 import { intervals } from "../data/categories";
 import FolderPicker from "../components/FolderPicker.vue";
 import OfflineCatalogPanel from "../components/OfflineCatalogPanel.vue";
+import SourceFolderList from "../components/SourceFolderList.vue";
 import SyncStationPanel from "../components/SyncStationPanel.vue";
 
 const props = defineProps({
@@ -12,22 +13,32 @@ const props = defineProps({
 });
 const emit = defineEmits(["saved", "catalog-imported"]);
 const picker = ref(null);
-const folderTarget = ref("source_dir");
 const message = ref("");
 const error = ref("");
 const busy = ref(false);
-const draft = reactive({ ...props.config, tmdb_api_key: "" });
+function configuredSourceFolders(config) {
+  const paths = Array.isArray(config.source_dirs) && config.source_dirs.length
+    ? config.source_dirs
+    : [config.source_dir];
+  return [...new Set(paths.filter((path) => typeof path === "string" && path.trim()))];
+}
+const draft = reactive({
+  ...props.config,
+  source_dirs: configuredSourceFolders(props.config),
+  tmdb_api_key: "",
+});
 watch(
   () => props.config,
-  (value) => Object.assign(draft, value),
+  (value) => {
+    Object.assign(draft, value, { source_dirs: configuredSourceFolders(value) });
+  },
   { deep: true },
 );
-function chooseFolder(target) {
-  folderTarget.value = target;
+function chooseDestination() {
   picker.value?.open();
 }
 function setFolder(path) {
-  draft[folderTarget.value] = path;
+  draft.destination_dir = path;
 }
 async function save() {
   busy.value = true;
@@ -35,7 +46,8 @@ async function save() {
   error.value = "";
   try {
     const payload = {
-      source_dir: draft.source_dir,
+      source_dirs: [...draft.source_dirs],
+      source_dir: draft.source_dirs[0] || "",
       destination_dir: draft.destination_dir,
       watch_enabled: draft.watch_enabled,
       interval_minutes: draft.interval_minutes,
@@ -65,22 +77,9 @@ async function save() {
       </div>
       <span class="step-dot">01</span>
     </div>
+    <SourceFolderList v-model="draft.source_dirs" />
     <div class="field-grid">
       <label
-        >待整理目录
-        <div class="directory-field">
-          <input
-            v-model="draft.source_dir"
-            type="text"
-            placeholder="请选择已授权目录"
-          /><button
-            class="button secondary"
-            @click="chooseFolder('source_dir')"
-          >
-            选择文件夹
-          </button>
-        </div></label
-      ><label
         >整理到目录
         <div class="directory-field">
           <input
@@ -89,7 +88,7 @@ async function save() {
             placeholder="请选择已授权目录"
           /><button
             class="button secondary"
-            @click="chooseFolder('destination_dir')"
+            @click="chooseDestination"
           >
             选择文件夹
           </button>

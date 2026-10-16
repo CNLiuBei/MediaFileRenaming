@@ -138,6 +138,27 @@ select:focus-visible {
     align-items: flex-start;
     flex-direction: column;
   }
+  .source-folder-heading {
+    align-items: flex-start;
+  }
+  .source-folder-heading .button {
+    padding: 0 10px;
+    flex: none;
+  }
+  .log-filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .log-filter {
+    flex: none;
+  }
+  .log-summary {
+    flex-direction: column;
+  }
+  .log-content {
+    min-width: 0;
+  }
   .interval-field {
     width: 100%;
   }

@@ -14,6 +14,10 @@ VIDEO_EXTENSIONS = {".mkv", ".mp4", ".avi", ".mov", ".wmv", ".m4v", ".ts", ".m2t
 MOVIE_CATEGORIES = {"待确认", "华语电影", "英语电影", "日语电影", "韩语电影", "其他语言电影"}
 TV_CATEGORIES = {"待确认", "国产剧", "美剧", "日剧", "韩剧", "港剧", "台剧", "英剧", "其他地区剧"}
 DEFAULT_CATEGORIES = {"电影": "待确认", "电视剧": "待确认"}
+MAX_SOURCE_DIRECTORIES = 50
+MAX_OPERATION_DETAILS = 20
+
+
 @dataclass
 class PlanItem:
     source: str
@@ -124,7 +128,53 @@ def validate_folder(value: str, roots: list[Path]) -> Path:
     return resolved
 
 
-def build_plan(source: Path, destination: Path, overrides: dict[str, dict] | None = None) -> list[PlanItem]:
+def normalize_source_dirs(values: object, legacy_value: str = "") -> list[str]:
+    if values is None:
+        candidates: list[object] = []
+    elif isinstance(values, list):
+        candidates = values
+    elif isinstance(values, str):
+        candidates = [values]
+    else:
+        raise ValueError("待整理目录格式无效")
+    paths: list[str] = []
+    for value in candidates:
+        if not isinstance(value, str):
+            raise ValueError("待整理目录必须是文件夹路径")
+        path = value.strip()
+        if path and path not in paths:
+            paths.append(path)
+    if not paths and legacy_value.strip():
+        paths.append(legacy_value.strip())
+    if len(paths) > MAX_SOURCE_DIRECTORIES:
+        raise ValueError(f"最多可添加 {MAX_SOURCE_DIRECTORIES} 个待整理目录")
+    return paths
+
+
+def validate_source_folders(values: list[str], roots: list[Path]) -> list[Path]:
+    if not values:
+        raise ValueError("请至少选择一个待整理文件夹")
+    sources = [validate_folder(value, roots) for value in values]
+    for index, source in enumerate(sources):
+        for other in sources[:index]:
+            if source == other or source in other.parents or other in source.parents:
+                raise ValueError("多个待整理文件夹不能重复或互相包含")
+    return sources
+
+
+def build_plan(
+    source: Path | list[Path],
+    destination: Path,
+    overrides: dict[str, dict] | None = None,
+) -> list[PlanItem]:
+    source_roots = [source] if isinstance(source, Path) else source
+    items: list[PlanItem] = []
+    for source_root in source_roots:
+        items.extend(_build_plan_for_source(source_root, destination, overrides))
+    return items
+
+
+def _build_plan_for_source(source: Path, destination: Path, overrides: dict[str, dict] | None = None) -> list[PlanItem]:
     items: list[PlanItem] = []
     media_paths: list[Path] = []
     for current, dirnames, filenames in os.walk(source, followlinks=False):
@@ -168,20 +218,45 @@ def build_plan(source: Path, destination: Path, overrides: dict[str, dict] | Non
     return items
 
 
-def apply_plan(items: list[PlanItem]) -> dict[str, int]:
-    result = {"moved": 0, "skipped": 0, "failed": 0}
+def apply_plan(items: list[PlanItem]) -> dict:
+    result = {
+        "ready": sum(item.status == "ready" for item in items),
+        "moved": 0,
+        "skipped": 0,
+        "failed": 0,
+        "details": [],
+        "details_total": 0,
+    }
+
+    def add_detail(item: PlanItem, status: str, message: str) -> None:
+        result["details_total"] += 1
+        if len(result["details"]) < MAX_OPERATION_DETAILS:
+            result["details"].append({
+                "status": status,
+                "source": item.source[:500],
+                "destination": item.destination[:500],
+                "message": message[:300],
+            })
+
     for item in items:
         if item.status != "ready":
             result["skipped"] += 1
+            add_detail(item, item.status, item.reason or "未执行")
             continue
         source, target = Path(item.source), Path(item.destination)
         try:
-            if not source.is_file() or target.exists():
+            if not source.is_file():
                 result["skipped"] += 1
+                add_detail(item, "skipped", "源文件不存在或不可访问")
+                continue
+            if target.exists():
+                result["skipped"] += 1
+                add_detail(item, "conflict", "目标文件已存在，不会覆盖")
                 continue
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.move(str(source), str(target))
             result["moved"] += 1
-        except OSError:
+        except OSError as exc:
             result["failed"] += 1
+            add_detail(item, "failed", str(exc))
     return result
