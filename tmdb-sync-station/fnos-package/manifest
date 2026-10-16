@@ -1,0 +1,13 @@
+appname               = TmdbSyncStation
+version               = 1.0.2
+display_name          = TMDB 同步站
+desc                  = 本地 PostgreSQL 影视片库与 TMDB 增量同步服务。
+platform              = x86
+source                = thirdparty
+maintainer            = RedGod
+distributor           = CNLiuBei
+desktop_uidir         = ui
+desktop_applaunchname = TmdbSyncStation.Application
+service_port          = 8788
+checkport             = true
+ctl_stop              = true

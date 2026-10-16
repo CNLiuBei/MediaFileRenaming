@@ -1,0 +1,25 @@
+:root {
+  font-family: "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #e7ecea;
+  background: #111a1d;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --bg: #111a1d;
+  --sidebar: #0d1518;
+  --panel: #182327;
+  --panel-raised: #1c292d;
+  --line: #2b393d;
+  --muted: #849294;
+  --text: #e7ecea;
+  --soft: #b7c2c0;
+  --amber: #e3b65c;
+  --teal: #76b5a6;
+  --mono: "SFMono-Regular", Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+body { min-width: 320px; min-height: 100vh; margin: 0; }
+button, input { font: inherit; }
+button { color: inherit; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+::selection { color: #101719; background: var(--amber); }

@@ -4,6 +4,7 @@ import { saveConfig } from "../api";
 import { intervals } from "../data/categories";
 import FolderPicker from "../components/FolderPicker.vue";
 import OfflineCatalogPanel from "../components/OfflineCatalogPanel.vue";
+import SyncStationPanel from "../components/SyncStationPanel.vue";
 
 const props = defineProps({
   config: { type: Object, required: true },
@@ -39,6 +40,7 @@ async function save() {
       watch_enabled: draft.watch_enabled,
       interval_minutes: draft.interval_minutes,
       tmdb_proxy_url: draft.tmdb_proxy_url || "",
+      tmdb_sync_station_url: draft.tmdb_sync_station_url || "",
     };
     if (draft.tmdb_api_key.trim())
       payload.tmdb_api_key = draft.tmdb_api_key.trim();
@@ -125,6 +127,10 @@ async function save() {
       链接。留空表示直连。此处不是 HTTP 出口代理设置。TMDB 校准请求限速为 0.8
       QPS（至少间隔 1.25 秒）。
     </p>
+    <SyncStationPanel
+      v-model="draft.tmdb_sync_station_url"
+      :status="props.config.tmdb_sync_station || {}"
+    />
     <div class="allowed-roots">
       <span>已授权路径</span>
       <div>

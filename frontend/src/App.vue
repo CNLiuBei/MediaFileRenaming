@@ -17,6 +17,8 @@ const config = reactive({
   interval_minutes: 15,
   tmdb_key_configured: false,
   tmdb_proxy_url: "",
+  tmdb_sync_station_url: "",
+  tmdb_sync_station: { configured: false, available: false, message: "尚未配置同步站" },
   offline_catalog: { available: false, titles: 0, aliases: 0, episodes: 0 },
 });
 const authorizedRoots = ref([]);

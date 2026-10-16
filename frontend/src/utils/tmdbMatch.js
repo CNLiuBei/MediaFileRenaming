@@ -1,10 +1,12 @@
 export function inferCategory(result, kind) {
   if (kind === "电影") {
+    if (!result.original_language) return "待确认";
     return ({ zh: "华语电影", en: "英语电影", ja: "日语电影", ko: "韩语电影" })[
       result.original_language
     ] || "其他语言电影";
   }
   const countries = result.origin_country || [];
+  if (!countries.length) return "待确认";
   if (countries.includes("CN")) return "国产剧";
   if (countries.includes("US")) return "美剧";
   if (countries.includes("JP")) return "日剧";

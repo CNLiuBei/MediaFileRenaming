@@ -105,6 +105,19 @@ class MediaParserTests(unittest.TestCase):
         self.assertEqual(metadata["title"], "Arrival")
         self.assertEqual(destination, Path("/library/电影/英语电影/Arrival (2016)/Arrival (2016).mkv"))
 
+    def test_uncalibrated_media_defaults_to_pending_categories(self):
+        movie_kind, movie_path, movie_metadata = classify(
+            Path("Arrival.2016.mkv"), Path("/library")
+        )
+        series_kind, series_path, series_metadata = classify(
+            Path("Show.S01E02.mkv"), Path("/library")
+        )
+
+        self.assertEqual((movie_kind, movie_metadata["category"]), ("电影", "待确认"))
+        self.assertIn("/电影/待确认/", movie_path.as_posix())
+        self.assertEqual((series_kind, series_metadata["category"]), ("电视剧", "待确认"))
+        self.assertIn("/电视剧/待确认/", series_path.as_posix())
+
     def test_series_plan_keeps_multi_episode_range(self):
         kind, destination, metadata = classify(Path("Show.S01E02-E04.mkv"), Path("/library"))
         self.assertEqual(kind, "电视剧")

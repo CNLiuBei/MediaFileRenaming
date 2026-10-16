@@ -59,7 +59,6 @@ async function scan() {
   try {
     const result = await previewPlan(collectOverrides());
     items.value = result.items;
-    overrides.value = {};
     const ready = result.items.filter((item) => item.status === "ready").length;
     const targetCount = countCalibrationTargets(groupPlanItems(result.items));
     const shouldAutoCalibrate = Boolean(
@@ -98,7 +97,6 @@ async function autoCalibrate() {
     if (Object.keys(calibrated).length) {
       const preview = await previewPlan(collectOverrides());
       items.value = preview.items;
-      overrides.value = {};
     }
     const stopped = report.cancelled ? "已停止；" : "";
     message.value = `${stopped}自动校准完成：匹配 ${report.selections.length} 组，未找到高置信结果 ${report.unmatched} 组。请核对预览后再执行整理。`;

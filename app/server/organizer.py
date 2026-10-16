@@ -13,6 +13,7 @@ from media_parser import parse_media_filename
 VIDEO_EXTENSIONS = {".mkv", ".mp4", ".avi", ".mov", ".wmv", ".m4v", ".ts", ".m2ts", ".webm", ".mpg", ".mpeg"}
 MOVIE_CATEGORIES = {"待确认", "华语电影", "英语电影", "日语电影", "韩语电影", "其他语言电影"}
 TV_CATEGORIES = {"待确认", "国产剧", "美剧", "日剧", "韩剧", "港剧", "台剧", "英剧", "其他地区剧"}
+DEFAULT_CATEGORIES = {"电影": "待确认", "电视剧": "待确认"}
 @dataclass
 class PlanItem:
     source: str
@@ -55,7 +56,7 @@ def classify(
     parsed = parse_media_filename(path, series_directory=series_directory)
     kind = requested_kind or parsed.kind
     categories = {"电影": MOVIE_CATEGORIES, "电视剧": TV_CATEGORIES}
-    category = str(override.get("category") or "待确认")
+    category = str(override.get("category") or DEFAULT_CATEGORIES[kind])
     if category not in categories[kind]:
         raise ValueError("二级分类与一级媒体类型不匹配")
     media_year = str(override.get("year", parsed.year))

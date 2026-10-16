@@ -1,5 +1,11 @@
 .DS_Store
 *.fpk
 frontend/node_modules/
+tmdb-sync-station/frontend/node_modules/
+tmdb-sync-station/frontend/dist/
+tmdb-sync-station/dist/
+tmdb-sync-station/.dev-server
+tmdb-sync-station/.playwright-cli/
+tmdb-sync-station/server
 __pycache__/
 *.py[cod]

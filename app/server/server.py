@@ -13,13 +13,14 @@ from api_helpers import list_authorized_directories, requested_overrides, tmdb_s
 from activity_log import recent_activity, record_activity
 from organizer import apply_plan, build_plan, list_authorized_roots, validate_folder
 from offline_catalog import catalog_info, import_catalog
+from sync_station import sync_station_status, validate_sync_station_url
 from tmdb import validate_tmdb_proxy_url
 
 APP_ROOT = Path(os.environ.get("TRIM_APPDEST", Path(__file__).resolve().parents[1]))
 WEB_ROOT = APP_ROOT / "ui" / "www"
 DATA_ROOT = Path(os.environ.get("TRIM_PKGVAR", Path.home() / ".media-file-renaming"))
 CONFIG_PATH = DATA_ROOT / "config.json"
-DEFAULT_CONFIG = {"source_dir": "", "destination_dir": "", "watch_enabled": False, "interval_minutes": 15, "tmdb_api_key": "", "tmdb_proxy_url": ""}
+DEFAULT_CONFIG = {"source_dir": "", "destination_dir": "", "watch_enabled": False, "interval_minutes": 15, "tmdb_api_key": "", "tmdb_proxy_url": "", "tmdb_sync_station_url": ""}
 CONFIG_LOCK = threading.Lock()
 
 
@@ -89,6 +90,7 @@ class Handler(BaseHTTPRequestHandler):
             public_config = {key: value for key, value in config.items() if key != "tmdb_api_key"}
             public_config["tmdb_key_configured"] = bool(config.get("tmdb_api_key"))
             public_config["offline_catalog"] = catalog_info()
+            public_config["tmdb_sync_station"] = sync_station_status(str(config.get("tmdb_sync_station_url", "")))
             self.send_json({"config": public_config, "authorized_roots": roots, "service": "running"})
             return
         if route == "/api/logs":
@@ -171,6 +173,7 @@ class Handler(BaseHTTPRequestHandler):
             if len(str(config["tmdb_api_key"])) > 256:
                 raise ValueError("TMDB API Key 长度无效")
             config["tmdb_proxy_url"] = validate_tmdb_proxy_url(str(config.get("tmdb_proxy_url", "")))
+            config["tmdb_sync_station_url"] = validate_sync_station_url(str(config.get("tmdb_sync_station_url", "")))
             interval = int(config["interval_minutes"])
             if not 5 <= interval <= 1440:
                 raise ValueError("自动整理间隔必须在 5 到 1440 分钟之间")

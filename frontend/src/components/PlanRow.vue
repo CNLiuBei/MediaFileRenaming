@@ -1,6 +1,6 @@
 <script setup>
 import { computed, reactive, watch } from "vue";
-import { categories } from "../data/categories";
+import { categories, defaultCategories } from "../data/categories";
 import PosterPreview from "./PosterPreview.vue";
 import TmdbSearchPanel from "./TmdbSearchPanel.vue";
 import { inferCategory } from "../utils/tmdbMatch";
@@ -13,7 +13,7 @@ const props = defineProps({
 const emit = defineEmits(["change"]);
 const draft = reactive({
   kind: "电影",
-  category: "待确认",
+  category: defaultCategories["电影"],
   title: "",
   year: "",
   season: 1,
@@ -29,7 +29,7 @@ watch(
   (item) => {
     Object.assign(draft, {
       kind: item.kind === "电视剧" ? "电视剧" : "电影",
-      category: item.category || "待确认",
+      category: item.category || defaultCategories[item.kind === "电视剧" ? "电视剧" : "电影"],
       title: item.title || "",
       year: item.year || "",
       season: item.season || 1,
@@ -43,7 +43,7 @@ watch(
 watch(
   () => draft.kind,
   (kind) => {
-    if (!categories[kind].includes(draft.category)) draft.category = "待确认";
+    if (!categories[kind].includes(draft.category)) draft.category = defaultCategories[kind];
     emitChange();
   },
 );

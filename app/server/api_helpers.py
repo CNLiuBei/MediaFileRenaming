@@ -7,6 +7,7 @@ from pathlib import Path
 
 from organizer import is_within, list_authorized_roots
 from offline_catalog import search_catalog
+from sync_station import search_sync_station
 from tmdb import search_titles
 
 POSTER_PATH_PATTERN = re.compile(r"/[A-Za-z0-9_-]+\.(?:jpe?g|png|webp)", re.IGNORECASE)
@@ -61,6 +62,11 @@ def tmdb_search_for_file(payload: dict, config: dict, source: Path) -> list[dict
     kind = str(payload.get("kind", ""))
     query = str(payload.get("query", ""))
     year = str(payload.get("year", ""))
+    station_url = str(config.get("tmdb_sync_station_url", ""))
+    if station_url.strip():
+        results = search_sync_station(station_url, kind, query, year)
+        if results:
+            return results
     results = search_catalog(kind, query, year)
     if results:
         return results
