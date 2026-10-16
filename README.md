@@ -6,6 +6,7 @@
 
 - 电影：识别年份（如 `Arrival.2016.1080p.mkv`），整理到 `电影/Arrival (2016)/Arrival (2016).mkv`。没有年份时按清理后的文件名建目录。
 - 电视剧：识别 `Show.Name.S01E02.mkv` 或 `Show.Name.1x02.mkv`，整理到 `电视剧/Show Name/Season 01/Show Name - S01E02.mkv`。
+- 文件名识别组合 GuessIt 4.4.0 与本项目中文规则；GuessIt 用于补充发行名字段和有目录依据的非标准集数。季号、集号与现有规则冲突时保留现有结果，避免将年份误当成季号。
 - 识别器支持常见的 `S01E02`、`1x02`、`Season 1 Episode 2`、`第1季第2集`、`第2集` 等写法、多集范围、季目录内编号集数、常见画质编码标签清理，并可从明确的季目录或电影目录补充季号、年份。非标准专名和发行方自定义格式仍可能需要人工校准。
 - 剧名文件夹里只有 `01.mkv`、`02.mkv` 时，如果同目录数字文件至少组成一组连续集号，扫描会把它们识别为第一季；同目录有明确剧集文件名时，也会用剧集目录名补充纯数字文件的剧名。孤立的纯数字文件无法确认是电影还是剧集，会跳过等待人工处理；无季目录时季号按第一季处理。
 - 扫描后可在每行修改一级媒体类型、二级分类、片名、电影年份或电视剧季/集号，再点“更新预览”核对完整目标路径。只有预览确认后点击“执行整理”才会移动文件；执行会采用当前修正值。
@@ -24,7 +25,10 @@
 ## 项目结构
 
 - `manifest`：应用元数据及服务端口。
-- `app/server/media_parser.py`：标准库实现的文件名与目录名影视信息解析器。
+- `app/server/media_parser.py`：组合 GuessIt 与本项目规则，解析文件名和目录名中的影视信息。
+- `app/server/guessit_adapter.py`：规范化 GuessIt 结果，并在有明确季集或目录上下文时补充识别。
+- `app/server/requirements.txt`：固定服务端解析依赖版本；FPK 构建时将依赖装入独立目录。
+- `app/server/THIRD_PARTY_NOTICES.md`：列出 GuessIt 及其依赖的许可证和来源。
 - `app/server/organizer.py`：整理方案、安全移动逻辑及人工修正应用。
 - `app/server/tmdb.py`：TMDB 搜索 API 客户端。
 - `app/server/server.py`：本地 HTTP 服务、目录授权检查、设置保存和定时扫描。
@@ -57,6 +61,6 @@ python3 scripts/build-fpk.py
 
 ## 安全与限制
 
-页面可通过“选择文件夹”浏览 fnOS 应用设置中已授权的目录。服务只接受位于 `TRIM_DATA_ACCESSIBLE_PATHS` 或 `TRIM_DATA_SHARE_PATHS` 中的绝对目录；目录选择 API 只列出授权路径中的真实文件夹，并跳过符号链接。请在 fnOS 应用设置中授权需要整理的源和目标目录。目标目录不能与源目录相同或位于源目录内部。运行用户为应用专属用户。平台声明为 `all`，服务只使用 Python 标准库。
+页面可通过“选择文件夹”浏览 fnOS 应用设置中已授权的目录。服务只接受位于 `TRIM_DATA_ACCESSIBLE_PATHS` 或 `TRIM_DATA_SHARE_PATHS` 中的绝对目录；目录选择 API 只列出授权路径中的真实文件夹，并跳过符号链接。请在 fnOS 应用设置中授权需要整理的源和目标目录。目标目录不能与源目录相同或位于源目录内部。运行用户为应用专属用户。平台声明为 `all`；服务端使用 Python 3.12 和随包提供的纯 Python GuessIt 依赖。
 
 TMDB 搜索按官方流程查询电影或电视剧候选条目，由用户选择具体结果；不自动采纳首个候选。参见 [TMDB 搜索说明](https://developer.themoviedb.org/docs/search-and-query-for-details) 与 [API 认证说明](https://developer.themoviedb.org/docs/authentication-application)。本产品使用 TMDB API，但未获 TMDB 认可或认证。未配置 TMDB Key 时仍可按文件名预览和手动修正。

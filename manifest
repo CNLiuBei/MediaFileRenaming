@@ -1,5 +1,5 @@
 appname               = MediaFileRenaming
-version               = 1.0.25
+version               = 1.0.26
 display_name          = 影视文件整理
 desc                  = 识别常见影视文件名并整理电影与剧集文件。
 platform              = all

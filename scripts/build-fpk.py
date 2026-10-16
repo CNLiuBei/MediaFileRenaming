@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -26,9 +27,32 @@ def main() -> int:
             if not source.exists():
                 continue
             if source.is_dir():
-                shutil.copytree(source, stage / name, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store"))
+                shutil.copytree(
+                    source,
+                    stage / name,
+                    ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store", "vendor"),
+                )
             else:
                 shutil.copy2(source, stage / name)
+        requirements = stage / "app" / "server" / "requirements.txt"
+        if requirements.exists():
+            vendor = stage / "app" / "server" / "vendor"
+            subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "pip",
+                    "install",
+                    "--disable-pip-version-check",
+                    "--no-compile",
+                    "--no-warn-script-location",
+                    "--target",
+                    str(vendor),
+                    "--requirement",
+                    str(requirements),
+                ],
+                check=True,
+            )
         subprocess.run([args.fnpack, "build"], cwd=stage, check=True)
         packages = sorted(stage.glob("*.fpk"), key=lambda item: item.stat().st_mtime, reverse=True)
         if not packages:

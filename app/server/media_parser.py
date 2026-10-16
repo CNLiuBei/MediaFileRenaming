@@ -3,8 +3,10 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from dataclasses import dataclass
 from pathlib import Path
+
+from guessit_adapter import refine_with_guessit
+from media_types import ParsedMedia
 
 YEAR_PATTERN = re.compile(r"(?<!\d)((?:19|20)\d{2})(?!\d)")
 EPISODE_PATTERNS = (
@@ -42,16 +44,6 @@ NOISE_PATTERN = re.compile(
     r"proper|repack|extended|remastered|limited|internal|readnfo|10bit|8bit|amzn|nf|dsnp|hmax|"
     r"cr|uncut)(?=\s|$).*$"
 )
-
-
-@dataclass(frozen=True)
-class ParsedMedia:
-    kind: str
-    title: str
-    year: str = ""
-    season: int = 0
-    episode: int = 0
-    episode_end: int = 0
 
 
 def _normalize(value: str) -> str:
@@ -157,19 +149,22 @@ def parse_media_filename(path: Path, *, series_directory: bool = False) -> Parse
     stem = _normalize(path.stem)
     episode = _parse_episode(stem, path)
     if episode:
-        return episode
+        return _refine_with_guessit(episode, path, series_directory)
     if re.fullmatch(r"\d{1,3}", stem):
         if series_directory:
             season = _directory_season(path)
-            return ParsedMedia(
+            parsed = ParsedMedia(
                 "电视剧", _series_directory(path), season=season if season is not None else 1, episode=int(stem)
             )
+            return _refine_with_guessit(parsed, path, series_directory)
         directory_year = YEAR_PATTERN.search(_normalize(path.parent.name))
         if directory_year:
             directory_title = _clean_title(path.parent.name[: directory_year.start()])
             if directory_title == stem:
-                return ParsedMedia("电影", directory_title, year=directory_year.group(1))
-        return ParsedMedia("电影", "未知名称")
+                return _refine_with_guessit(
+                    ParsedMedia("电影", directory_title, year=directory_year.group(1)), path, series_directory
+                )
+        return _refine_with_guessit(ParsedMedia("电影", "未知名称"), path, series_directory)
     year_matches = list(YEAR_PATTERN.finditer(stem))
     year_match = year_matches[-1] if year_matches else None
     directory_match = YEAR_PATTERN.search(_normalize(path.parent.name))
@@ -184,4 +179,16 @@ def parse_media_filename(path: Path, *, series_directory: bool = False) -> Parse
     else:
         use_directory = False
     year = year_match.group(1) if year_match else directory_match.group(1) if use_directory else ""
-    return ParsedMedia("电影", title, year=year)
+    return _refine_with_guessit(ParsedMedia("电影", title, year=year), path, series_directory)
+
+
+def _refine_with_guessit(parsed: ParsedMedia, path: Path, series_directory: bool) -> ParsedMedia:
+    directory_season = _directory_season(path)
+    return refine_with_guessit(
+        parsed,
+        path,
+        series_title=_series_directory(path),
+        series_directory=series_directory,
+        directory_season=directory_season,
+        clean_title=_clean_title,
+    )

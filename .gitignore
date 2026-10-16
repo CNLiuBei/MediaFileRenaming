@@ -9,3 +9,4 @@ tmdb-sync-station/.playwright-cli/
 tmdb-sync-station/server
 __pycache__/
 *.py[cod]
+app/server/vendor/
