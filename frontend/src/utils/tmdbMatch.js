@@ -40,6 +40,8 @@ export function findBestTmdbMatch(results, query, year = "") {
     const titleScore = Math.max(
       similarity(normalizedQuery, normalizeTitle(result.title)),
       similarity(normalizedQuery, normalizeTitle(result.original_title)),
+      similarity(normalizedQuery, normalizeTitle(result.english_title)),
+      similarity(normalizedQuery, normalizeTitle(result.matched_alias)),
     );
     const score = titleScore + (year && result.year === year ? 0.1 : 0);
     if (score > bestScore) {

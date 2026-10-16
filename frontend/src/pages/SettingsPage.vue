@@ -3,12 +3,13 @@ import { reactive, ref, watch } from "vue";
 import { saveConfig } from "../api";
 import { intervals } from "../data/categories";
 import FolderPicker from "../components/FolderPicker.vue";
+import OfflineCatalogPanel from "../components/OfflineCatalogPanel.vue";
 
 const props = defineProps({
   config: { type: Object, required: true },
   authorizedRoots: { type: Array, required: true },
 });
-const emit = defineEmits(["saved"]);
+const emit = defineEmits(["saved", "catalog-imported"]);
 const picker = ref(null);
 const folderTarget = ref("source_dir");
 const message = ref("");
@@ -182,5 +183,6 @@ async function save() {
       ><span class="message">{{ message }}</span>
     </div>
   </section>
+  <OfflineCatalogPanel :catalog="config.offline_catalog" @imported="emit('catalog-imported', $event)" />
   <FolderPicker ref="picker" @select="setFolder" />
 </template>

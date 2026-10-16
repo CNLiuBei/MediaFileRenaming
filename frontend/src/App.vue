@@ -17,6 +17,7 @@ const config = reactive({
   interval_minutes: 15,
   tmdb_key_configured: false,
   tmdb_proxy_url: "",
+  offline_catalog: { available: false, titles: 0, aliases: 0, episodes: 0 },
 });
 const authorizedRoots = ref([]);
 const pageTitle = computed(
@@ -66,11 +67,12 @@ onMounted(loadStatus);
           :config="config"
           :authorized-roots="authorizedRoots"
           @saved="updateConfig"
+          @catalog-imported="loadStatus"
         />
         <LogsPage v-else />
       </KeepAlive>
       <footer>
-        文件整理在本机处理。手动搜索或自动校准时会向 TMDB 发送片名；本产品使用 TMDB
+        文件整理在本机处理。离线片库未命中时，在线搜索会向 TMDB 发送片名。本产品使用 TMDB
         API，但未获 TMDB 认可或认证。
       </footer>
     </main>

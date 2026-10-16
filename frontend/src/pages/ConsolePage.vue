@@ -62,13 +62,15 @@ async function scan() {
     overrides.value = {};
     const ready = result.items.filter((item) => item.status === "ready").length;
     const targetCount = countCalibrationTargets(groupPlanItems(result.items));
-    const shouldAutoCalibrate = Boolean(props.config.tmdb_key_configured);
+    const shouldAutoCalibrate = Boolean(
+      props.config.tmdb_key_configured || props.config.offline_catalog?.available,
+    );
     shouldCalibrate = shouldAutoCalibrate && targetCount > 0;
     const summary = `扫描完成：${result.count} 个文件，其中 ${ready} 个可整理。`;
     if (shouldCalibrate) {
       message.value = `${summary} 即将自动校准 ${targetCount} 个片名…`;
     } else if (targetCount && !shouldAutoCalibrate) {
-      message.value = `${summary} 尚未配置 TMDB API Key，已跳过自动校准；配置后可手动重新校准。`;
+      message.value = `${summary} 尚未导入离线片库或配置 TMDB API Key，已跳过自动校准。`;
     } else {
       message.value = summary;
     }
@@ -161,7 +163,7 @@ function saveOverride(payload) {
     <div>
       <p class="eyebrow">媒体库工作台</p>
       <h2>让电影和剧集各归其位</h2>
-      <p class="muted">扫描后自动校准 TMDB 信息；核对预览与分类后，再执行整理。</p>
+      <p class="muted">扫描后优先用离线片库校准影视信息；核对预览与分类后，再执行整理。</p>
     </div>
     <div class="intro-icon" aria-hidden="true">▤</div>
   </section>
@@ -186,7 +188,7 @@ function saveOverride(payload) {
       @stop="requestStopCalibration"
     />
     <p v-if="items.length" class="hint-inline">
-      扫描完成后会按 0.8 QPS 自动校准 TMDB，只采用高置信匹配。也可重新校准；校准仅更新预览，不会移动文件。
+      扫描完成后优先查询离线片库；在线 TMDB 请求按 0.8 QPS 限速。只采用高置信匹配；校准仅更新预览，不会移动文件。
     </p>
     <p v-if="error" class="message error" role="alert">{{ error }}</p>
     <div v-if="items.length" class="plan-wrap">

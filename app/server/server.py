@@ -12,6 +12,7 @@ from urllib.parse import parse_qs, urlparse
 from api_helpers import list_authorized_directories, requested_overrides, tmdb_search_for_file
 from activity_log import recent_activity, record_activity
 from organizer import apply_plan, build_plan, list_authorized_roots, validate_folder
+from offline_catalog import catalog_info, import_catalog
 from tmdb import validate_tmdb_proxy_url
 
 APP_ROOT = Path(os.environ.get("TRIM_APPDEST", Path(__file__).resolve().parents[1]))
@@ -87,6 +88,7 @@ class Handler(BaseHTTPRequestHandler):
             config = read_config()
             public_config = {key: value for key, value in config.items() if key != "tmdb_api_key"}
             public_config["tmdb_key_configured"] = bool(config.get("tmdb_api_key"))
+            public_config["offline_catalog"] = catalog_info()
             self.send_json({"config": public_config, "authorized_roots": roots, "service": "running"})
             return
         if route == "/api/logs":
@@ -120,6 +122,9 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         route = urlparse(self.path).path
         try:
+            if route == "/api/catalog/import":
+                self.send_json({"catalog": import_catalog(self)})
+                return
             payload = self.read_json()
             config = read_config()
             if route == "/api/preview":

@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 
 from organizer import is_within, list_authorized_roots
+from offline_catalog import search_catalog
 from tmdb import search_titles
 
 POSTER_PATH_PATTERN = re.compile(r"/[A-Za-z0-9_-]+\.(?:jpe?g|png|webp)", re.IGNORECASE)
@@ -54,16 +55,22 @@ def list_authorized_directories(requested_path: str) -> dict:
 
 
 def tmdb_search_for_file(payload: dict, config: dict, source: Path) -> list[dict]:
-    api_key = str(config.get("tmdb_api_key", ""))
-    if not api_key:
-        raise ValueError("请先在目录设置中填写 TMDB API Key")
     media_file = Path(str(payload.get("source", ""))).resolve(strict=True)
     if not media_file.is_file() or not is_within(media_file, [source]):
         raise ValueError("只能校准待整理目录中的文件")
+    kind = str(payload.get("kind", ""))
+    query = str(payload.get("query", ""))
+    year = str(payload.get("year", ""))
+    results = search_catalog(kind, query, year)
+    if results:
+        return results
+    api_key = str(config.get("tmdb_api_key", ""))
+    if not api_key:
+        return []
     return search_titles(
         api_key,
-        str(payload.get("kind", "")),
-        str(payload.get("query", "")),
-        str(payload.get("year", "")),
+        kind,
+        query,
+        year,
         str(config.get("tmdb_proxy_url", "")),
     )
