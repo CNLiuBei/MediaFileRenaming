@@ -1,10 +1,10 @@
 appname               = MediaFileRenaming
-version               = 1.0.19
+version               = 1.0.20
 display_name          = 影视文件整理
 desc                  = 识别常见影视文件名并整理电影与剧集文件。
 platform              = all
 source                = thirdparty
-maintainer            = CNLiuBei
+maintainer            = RedGod
 distributor           = CNLiuBei
 desktop_uidir         = ui
 desktop_applaunchname = MediaFileRenaming.Application
