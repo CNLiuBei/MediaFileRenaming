@@ -34,6 +34,57 @@ class MediaParserTests(unittest.TestCase):
         parsed = parse_media_filename(Path("The.Matrix.1999.1080p.BluRay.x265-GROUP.mkv"))
         self.assertEqual((parsed.kind, parsed.title, parsed.year), ("电影", "The Matrix", "1999"))
 
+    def test_chinese_release_names_drop_site_metadata_and_keep_native_title(self):
+        cases = [
+            (
+                "蜘蛛侠：新新之日.2026.HD2160P.AAC.H264.CHS-ENG.BTSJ6.mkv",
+                "蜘蛛侠:新新之日", "2026",
+            ),
+            (
+                "【高清影视之家发布 WWW.BBEBBB.com】天堂旅行团[国语配音+中文字幕]."
+                "Always.Have.Always.Will.2025.2160p.WEB-DL.H265.DDP5.1-QuickIO.mkv",
+                "天堂旅行团", "2025",
+            ),
+            (
+                "[高清影视之家发布 www.HDBTHD.com] 胜券在握[60帧率版本]"
+                "[国语配音....Gather.Around.2024.2160p.WEB-DL.DDP5.1.H265.HDR-ParkHD.mkv",
+                "胜券在握", "2024",
+            ),
+            (
+                "群体.电影港 地址发布页 www.dygang.me 收藏不迷路.mkv",
+                "群体", "",
+            ),
+        ]
+        for filename, expected_title, expected_year in cases:
+            with self.subTest(filename=filename):
+                parsed = parse_media_filename(Path(filename))
+                self.assertEqual((parsed.kind, parsed.title, parsed.year),
+                                 ("电影", expected_title, expected_year))
+
+    def test_chinese_tv_release_names_keep_title_and_season_episode(self):
+        cases = [
+            ("拿着手术刀的猎人", "拿着手术刀的猎人.unter.with.a.Scalpel.S01E01"),
+            ("操控游戏", "操控游戏.Manipulated.S01E01"),
+            ("UDT:我们小区特工队", "UDT：我们小区特工队.Heroes.Next.Door.S01E01"),
+            ("模范出租车", "模范出租车3.Taxi.Driver.S03E01"),
+            ("反派们", "反派们.Villains.S01E01"),
+            ("超能路人甲", "超能路人甲.ONDERfools.S01E01"),
+        ]
+        for expected_title, release_name in cases:
+            filename = (
+                f"[高清剧集网发布 www.DDHDTV.com] {release_name}.1080p.WEB-DL."
+                "AAC2.0.H.264-BlackTV.mkv"
+            )
+            with self.subTest(filename=filename):
+                parsed = parse_media_filename(Path(filename))
+                self.assertEqual((parsed.kind, parsed.title, parsed.season, parsed.episode),
+                                 ("电视剧", expected_title, 3 if "S03" in release_name else 1, 1))
+
+    def test_season_folder_suffix_supplies_title_and_season(self):
+        parsed = parse_media_filename(Path("模范出租车3.Taxi.Driver.S03/01.mkv"))
+        self.assertEqual((parsed.kind, parsed.title, parsed.season, parsed.episode),
+                         ("电视剧", "模范出租车", 3, 1))
+
     def test_chinese_series_with_attached_season_marker_and_range(self):
         parsed = parse_media_filename(Path("测试剧名S01E02-E03.1080p.WEB-DL.mkv"))
         self.assertEqual((parsed.kind, parsed.title, parsed.season, parsed.episode, parsed.episode_end),
