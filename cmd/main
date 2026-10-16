@@ -1,0 +1,67 @@
+#!/bin/bash
+
+APP_SCRIPT="${TRIM_APPDEST}/server/server.py"
+DATA_DIR="${TRIM_PKGVAR}"
+LOG_FILE="${DATA_DIR}/service.log"
+PID_FILE="${DATA_DIR}/service.pid"
+PORT="${TRIM_SERVICE_PORT:-8787}"
+
+mkdir -p "${DATA_DIR}"
+
+is_running() {
+    [ -r "${PID_FILE}" ] || return 1
+    local pid
+    pid="$(head -n 1 "${PID_FILE}" | tr -d '[:space:]')"
+    [[ "${pid}" =~ ^[0-9]+$ ]] || return 1
+    kill -0 "${pid}" 2>/dev/null || return 1
+    ps -p "${pid}" -o args= 2>/dev/null | grep -Fq "${APP_SCRIPT}"
+}
+
+start_service() {
+    if is_running; then
+        return 0
+    fi
+    rm -f "${PID_FILE}"
+    if [ ! -f "${APP_SCRIPT}" ]; then
+        echo "应用服务文件不存在：${APP_SCRIPT}" > "${TRIM_TEMP_LOGFILE:-${LOG_FILE}}"
+        return 1
+    fi
+    export PATH="/var/apps/python312/target/bin:${PATH}"
+    nohup python3 "${APP_SCRIPT}" >> "${LOG_FILE}" 2>&1 &
+    local pid=$!
+    printf '%s\n' "${pid}" > "${PID_FILE}"
+    sleep 1
+    if is_running; then
+        return 0
+    fi
+    echo "应用服务启动失败，请检查 ${LOG_FILE}" > "${TRIM_TEMP_LOGFILE:-${LOG_FILE}}"
+    rm -f "${PID_FILE}"
+    return 1
+}
+
+stop_service() {
+    if ! is_running; then
+        rm -f "${PID_FILE}"
+        return 0
+    fi
+    local pid
+    pid="$(head -n 1 "${PID_FILE}" | tr -d '[:space:]')"
+    kill -TERM "${pid}" 2>/dev/null || true
+    for _ in {1..10}; do
+        kill -0 "${pid}" 2>/dev/null || break
+        sleep 1
+    done
+    if kill -0 "${pid}" 2>/dev/null; then
+        kill -KILL "${pid}" 2>/dev/null || true
+    fi
+    rm -f "${PID_FILE}"
+}
+
+case "$1" in
+    start) start_service ;;
+    stop) stop_service ;;
+    status)
+        if is_running; then exit 0; else exit 3; fi
+        ;;
+    *) exit 1 ;;
+esac

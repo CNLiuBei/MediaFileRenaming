@@ -1,0 +1,43 @@
+{
+  "schema_version": "2",
+  "source_info": {
+    "name": "CNLiuBei fnOS 应用源",
+    "author": "CNLiuBei",
+    "homepage": "https://github.com/CNLiuBei/MediaFileRenaming",
+    "description": "影视文件整理应用及更新源"
+  },
+  "apps": {
+    "MediaFileRenaming": {
+      "display_name": "影视文件整理",
+      "desc": "识别常见影视文件名并整理电影与剧集文件。",
+      "platform": [
+        "all"
+      ],
+      "categories": [
+        "影音娱乐"
+      ],
+      "icon_url": "https://raw.githubusercontent.com/CNLiuBei/MediaFileRenaming/main/ICON_256.PNG",
+      "readme_url": "https://github.com/CNLiuBei/MediaFileRenaming/blob/main/README.md",
+      "bug_report_url": "https://github.com/CNLiuBei/MediaFileRenaming/issues",
+      "maintainer": "CNLiuBei",
+      "maintainer_url": "https://github.com/CNLiuBei",
+      "run_as": "package",
+      "install_type": "",
+      "is_docker": false,
+      "service_port": "8787",
+      "releases": {
+        "1.0.18": {
+          "changelog": "保留控制台扫描结果，修复页面切换后结果丢失。",
+          "packages": {
+            "all": {
+              "download_url": "https://github.com/CNLiuBei/MediaFileRenaming/releases/download/v1.0.18/MediaFileRenaming_1.0.18_all.fpk",
+              "sha256": "e0cd53ab57825afba8bec782b8b4cc0b135616e296cefc19d11c080d22166e54",
+              "size": 66952
+            }
+          },
+          "updated_at": "2026-10-16T07:53:57+00:00"
+        }
+      }
+    }
+  }
+}

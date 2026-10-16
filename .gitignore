@@ -1,0 +1,5 @@
+.DS_Store
+*.fpk
+frontend/node_modules/
+__pycache__/
+*.py[cod]

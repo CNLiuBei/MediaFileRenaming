@@ -1,0 +1,172 @@
+.plan-row:last-child {
+  border: 0;
+}
+.plan-paths {
+  min-width: 0;
+}
+.plan-paths > span {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+}
+.plan-paths .arrow {
+  padding: 4px 0;
+  color: #718092;
+}
+.plan-editor {
+  display: grid;
+  grid-template-columns: 105px 120px minmax(120px, 1fr) 78px 57px 57px;
+  gap: 6px;
+  margin-top: 7px;
+}
+.plan-editor input,
+.plan-editor select,
+.tmdb-tools input,
+.field-grid input,
+.interval-field select,
+.tmdb-key-field input {
+  min-width: 0;
+  width: 100%;
+  height: 34px;
+  padding: 0 9px;
+  border: 1px solid #dce3ea;
+  border-radius: 7px;
+  background: #fff;
+  color: #304054;
+  font: inherit;
+  font-size: 11px;
+}
+.plan-editor .button {
+  min-height: 32px;
+  padding: 0 9px;
+  font-size: 10px;
+}
+.title-edit {
+  min-width: 0;
+}
+.tmdb-tools {
+  display: flex;
+  gap: 7px;
+  margin-top: 7px;
+}
+.tmdb-tools input {
+  flex: 1;
+}
+.tmdb-results {
+  display: grid;
+  gap: 6px;
+  margin-top: 7px;
+}
+.tmdb-result {
+  padding: 9px;
+  border: 1px solid #e3e9ed;
+  border-radius: 8px;
+  background: #f9fbfc;
+  color: #304054;
+  text-align: left;
+  cursor: pointer;
+}
+.tmdb-result strong,
+.tmdb-result small {
+  display: block;
+}
+.tmdb-result small {
+  margin-top: 4px;
+  color: #718092;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.tmdb-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 5px;
+  border-radius: 5px;
+  background: #e8f5f1;
+  color: #28734c;
+  font-size: 9px;
+}
+.plan-state {
+  align-self: center;
+  color: #28734c;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: right;
+}
+.plan-state.conflict,
+.plan-state.skipped {
+  color: #b06b37;
+}
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+.field-grid label,
+.interval-field {
+  display: grid;
+  gap: 7px;
+  color: #334157;
+  font-size: 12px;
+  font-weight: 650;
+}
+.directory-field {
+  display: flex;
+  gap: 7px;
+}
+.directory-field input {
+  flex: 1;
+}
+.directory-field .button {
+  flex: none;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+.hint {
+  margin: 10px 0 15px;
+}
+.tmdb-key-field {
+  display: block;
+  margin-top: 15px;
+  color: #334157;
+  font-size: 12px;
+  font-weight: 650;
+}
+.tmdb-key-field input {
+  display: block;
+  margin-top: 7px;
+}
+.allowed-roots {
+  display: flex;
+  gap: 12px;
+  padding-top: 13px;
+  border-top: 1px solid #edf0f3;
+  color: #7d8999;
+  font-size: 10px;
+}
+.allowed-roots > span {
+  flex: none;
+}
+.allowed-roots > div {
+  display: grid;
+  gap: 4px;
+  color: #46566d;
+  overflow-wrap: anywhere;
+}
+.automation-panel > .muted {
+  margin: -7px 0 16px;
+}
+.automation-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 13px 15px;
+  border-radius: 11px;
+  background: #f8fafb;
+}
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}

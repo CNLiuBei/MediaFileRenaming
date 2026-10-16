@@ -1,0 +1,80 @@
+name: Build and publish fnOS package
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build frontend
+        run: |
+          npm --prefix frontend ci
+          npm --prefix frontend run build
+
+      - name: Install fnpack
+        run: |
+          curl --fail --location --silent --show-error \
+            https://static2.fnnas.com/fnpack/fnpack-1.2.3-linux-amd64 \
+            --output "$RUNNER_TEMP/fnpack"
+          chmod +x "$RUNNER_TEMP/fnpack"
+
+      - name: Build FPK
+        id: package
+        run: |
+          VERSION="$(sed -n 's/^version[[:space:]]*=[[:space:]]*//p' manifest | tr -d '\r')"
+          TAG="${GITHUB_REF_NAME}"
+          if [ "$TAG" != "v$VERSION" ]; then
+            echo "Tag $TAG does not match manifest version $VERSION" >&2
+            exit 1
+          fi
+          python3 scripts/build-fpk.py --fnpack "$RUNNER_TEMP/fnpack"
+          ASSET="MediaFileRenaming_${VERSION}_all.fpk"
+          mv MediaFileRenaming.fpk "$ASSET"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "asset=$ASSET" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "${{ steps.package.outputs.asset }}" \
+            --title "影视文件整理 ${{ steps.package.outputs.version }}" \
+            --generate-notes
+
+      - name: Update FnDepot source index
+        run: |
+          git fetch origin main
+          git checkout -B main origin/main
+          python3 scripts/update-fndepot-index.py \
+            --version "${{ steps.package.outputs.version }}" \
+            --tag "$GITHUB_REF_NAME" \
+            --artifact "${{ steps.package.outputs.asset }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add fnpack.json
+          git commit -m "发布影视文件整理 ${{ steps.package.outputs.version }}"
+          git push origin main

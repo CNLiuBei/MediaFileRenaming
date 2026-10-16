@@ -1,0 +1,14 @@
+appname               = MediaFileRenaming
+version               = 1.0.18
+display_name          = 影视文件整理
+desc                  = 识别常见影视文件名并整理电影与剧集文件。
+platform              = all
+source                = thirdparty
+maintainer            = CNLiuBei
+distributor           = CNLiuBei
+desktop_uidir         = ui
+desktop_applaunchname = MediaFileRenaming.Application
+service_port          = 8787
+checkport             = true
+ctl_stop              = true
+install_dep_apps      = python312

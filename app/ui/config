@@ -1,0 +1,13 @@
+{
+    ".url": {
+        "MediaFileRenaming.Application": {
+            "title": "影视文件整理",
+            "icon": "images/icon_{0}.png",
+            "type": "iframe",
+            "protocol": "http",
+            "port": "8787",
+            "url": "/",
+            "allUsers": false
+        }
+    }
+}
