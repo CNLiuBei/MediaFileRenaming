@@ -77,6 +77,16 @@
               "size": 74838
             }
           }
+        },
+        "1.0.25": {
+          "updated_at": "2026-10-16T11:39:43+00:00",
+          "packages": {
+            "all": {
+              "download_url": "https://github.com/CNLiuBei/MediaFileRenaming/releases/download/v1.0.25/MediaFileRenaming_1.0.25_all.fpk",
+              "sha256": "450878a50f6bbc833cab6ac5a9300d8662971b16336e055661e765b0d82fa008",
+              "size": 75727
+            }
+          }
         }
       }
     }
