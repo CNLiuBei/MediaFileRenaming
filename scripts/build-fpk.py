@@ -23,6 +23,8 @@ def main() -> int:
         stage.mkdir()
         for name in ("manifest", "ICON.PNG", "ICON_256.PNG", "app", "cmd", "config", "wizard"):
             source = ROOT / name
+            if not source.exists():
+                continue
             if source.is_dir():
                 shutil.copytree(source, stage / name, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store"))
             else:

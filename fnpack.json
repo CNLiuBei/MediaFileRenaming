@@ -31,11 +31,11 @@
           "packages": {
             "all": {
               "download_url": "https://github.com/CNLiuBei/MediaFileRenaming/releases/download/v1.0.18/MediaFileRenaming_1.0.18_all.fpk",
-              "sha256": "e0cd53ab57825afba8bec782b8b4cc0b135616e296cefc19d11c080d22166e54",
-              "size": 66952
+              "sha256": "afff89a0c626e04566a71dbb235de4fc18fadce00fcca656116409eb5af62324",
+              "size": 66938
             }
           },
-          "updated_at": "2026-10-16T07:53:57+00:00"
+          "updated_at": "2026-10-16T07:55:39+00:00"
         }
       }
     }
